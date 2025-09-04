@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Coach Assistant Lite (9v9)</title>
+<style>
+  :root { --bg:#f6f7f9; --card:#ffffff; --text:#0f172a; --muted:#64748b; --accent:#0ea5e9; }
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica,Arial,sans-serif;}
+  .container{max-width:980px;margin:0 auto;padding:16px;}
+  .title{font-size:24px;font-weight:800;margin:8px 0;}
+  .sub{color:var(--muted);font-size:12px;margin-bottom:8px;}
+  .row{display:grid;grid-template-columns:1fr;gap:12px}
+  @media(min-width:800px){.row{grid-template-columns:1fr 1fr}}
+  .card{background:var(--card);border:1px solid #e5e7eb;border-radius:16px;padding:14px;box-shadow:0 2px 10px rgba(2,8,23,0.04)}
+  .card h2{font-size:16px;margin:0 0 8px 0}
+  label{font-size:14px;display:flex;align-items:center;justify-content:space-between;margin:6px 0}
+  select,input[type="text"],textarea{border:1px solid #e5e7eb;border-radius:10px;padding:8px;min-width:180px}
+  input[type="checkbox"]{width:18px;height:18px}
+  textarea{width:100%;min-height:80px}
+  .actions{display:flex;flex-wrap:wrap;gap:8px}
+  button{border:1px solid #e5e7eb;background:#fff;border-radius:999px;padding:8px 14px;font-weight:600}
+  button.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .list{padding-left:18px}
+  .pill{display:inline-block;border:1px solid #e5e7eb;border-radius:999px;padding:4px 10px;margin:4px 6px 0 0;font-size:12px}
+  .small{font-size:12px;color:var(--muted)}
+  pre{background:#0b1220;color:#e6edf6;border-radius:12px;padding:12px;white-space:pre-wrap}
+</style>
+</head>
+<body>
+  <div class="container">
+    <div>
+      <div class="title">First 10 Minutes — Coach Assistant (Lite)</div>
+      <div class="sub">3-4-1 · High press · Build short (GK long to winger on gathers) · Wide-first · Protect CB</div>
+      <div class="actions">
+        <button id="btnGenerate" class="primary">Generate Plan</button>
+        <button id="btnReset">Reset</button>
+        <button id="btnCopy">Copy Team Talk</button>
+      </div>
+    </div>
+
+    <div class="row" style="margin-top:12px">
+      <div class="card">
+        <h2>Opposition Setup</h2>
+        <label>Formation
+          <select id="formation">
+            <option>3-2-3</option>
+            <option>3-3-2</option>
+            <option>2-3-3</option>
+            <option>Other</option>
+          </select>
+        </label>
+        <label>Defensive line height
+          <select id="lineHeight">
+            <option value="mid">Mid</option>
+            <option value="high">High</option>
+            <option value="deep">Deep</option>
+          </select>
+        </label>
+        <label>Presses GK/CBs on build-up
+          <input type="checkbox" id="pressKeeper">
+        </label>
+        <label>Weak link in defence
+          <select id="weakDef">
+            <option value="">None spotted yet</option>
+            <option>left CB</option>
+            <option>right CB</option>
+            <option>left full-back</option>
+            <option>right full-back</option>
+            <option>central unit</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="card">
+        <h2>Attacking Patterns (Opposition)</h2>
+        <label>Build preference
+          <select id="buildSide">
+            <option value="middle">Middle</option>
+            <option value="left">Left</option>
+            <option value="right">Right</option>
+          </select>
+        </label>
+        <label>Overload wide?
+          <input type="checkbox" id="overloadWide">
+        </label>
+        <label>Main playmaker
+          <select id="playmaker">
+            <option value="">Not sure yet</option>
+            <option value="CM">CM</option>
+            <option value="winger">Winger</option>
+            <option value="striker">Striker</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="card">
+        <h2>Goalkeeper Profile (Opposition)</h2>
+        <label>Height
+          <select id="gkHeight">
+            <option value="tall">Tall</option>
+            <option value="short">Short</option>
+          </select>
+        </label>
+        <label>Distribution
+          <select id="gkDist">
+            <option value="mid">Mid-range</option>
+            <option value="short">Short</option>
+            <option value="long">Long</option>
+          </select>
+        </label>
+        <label>Confidence under pressure
+          <select id="gkConf">
+            <option value="calm">Calm</option>
+            <option value="panics">Panics</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="card">
+        <h2>Spaces You Can Exploit</h2>
+        <label>Behind full-backs <input type="checkbox" id="spaceBehind"></label>
+        <label>Between defence & midfield <input type="checkbox" id="spaceBetween"></label>
+        <label>Switches hurt them (slow shift) <input type="checkbox" id="spaceSwitch"></label>
+        <label>Set-pieces look weak <input type="checkbox" id="setPieces"></label>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:12px">
+      <h2>Auto-Suggested Adjustments (Live Plan)</h2>
+      <ul id="recs" class="list"></ul>
+      <div id="comms"></div>
+    </div>
+
+    <div class="card" style="margin-top:12px">
+      <h2>Position-Specific Cues</h2>
+      <div id="roles" class="row"></div>
+    </div>
+
+    <div class="card" style="margin-top:12px">
+      <h2>One-Tap Team Talk</h2>
+      <pre id="teamTalk">Press “Generate Plan” above.</pre>
+      <div class="small">Tip: iPhone → Share → Add to Home Screen for quick access.</div>
+    </div>
+
+    <div class="small" style="margin-top:10px;text-align:center">Coach Assistant Lite — built for quick matchday reads.</div>
+  </div>
+
+<script>
+function genPlan() {
+  const v = (id)=>document.getElementById(id).value;
+  const c = (id)=>document.getElementById(id).checked;
+
+  const obs = {
+    formation: v('formation'),
+    lineHeight: v('lineHeight'),
+    pressKeeper: c('pressKeeper'),
+    weakDef: v('weakDef'),
+    buildSide: v('buildSide'),
+    overloadWide: c('overloadWide'),
+    playmaker: v('playmaker'),
+    gkHeight: v('gkHeight'),
+    gkDist: v('gkDist'),
+    gkConf: v('gkConf'),
+    spaceBehind: c('spaceBehind'),
+    spaceBetween: c('spaceBetween'),
+    spaceSwitch: c('spaceSwitch'),
+    setPieces: c('setPieces')
+  };
+
+  const recs = new Set();
+  const comms = [];
+  const roles = new Map([
+    ['GK', new Set()],
+    ['CB-L', new Set()],['CB-C', new Set()],['CB-R', new Set()],
+    ['WB-L', new Set()],['WB-R', new Set()],
+    ['CM-6', new Set()],['CM-8', new Set()],
+    ['ST', new Set()]
+  ]);
+
+  // Team DNA (always on)
+  recs.add("High press: ST leads; wingers jump to FBs; CMs squeeze.");
+  roles.get('ST').add("Lead the press, show one way.");
+  roles.get('WB-L').add("Start 3–5m higher to squeeze.");
+  roles.get('WB-R').add("Start 3–5m higher to squeeze.");
+  roles.get('CM-6').add("Be the safety net behind the press.");
+
+  recs.add("Build short when settled; if GK gathers, release long early to a free winger.");
+  roles.get('GK').add("Scan early; clip wide on gathers.");
+  roles.get('WB-L').add("Open to receive short from GK.");
+  roles.get('WB-R').add("Open to receive short from GK.");
+
+  recs.add("Attack down the sides: winger 1v1s, WB overlaps, cut-backs.");
+  roles.get('CM-8').add("Arrive edge of box for cut-backs.");
+
+  recs.add("Protect the centre-back: WBs tuck on transition; one CM screens.");
+  roles.get('CM-6').add("Screen zone 14 on turnovers.");
+  roles.get('CB-C').add("Hold position—don’t get dragged wide.");
+
+  // Scouting reads
+  if (obs.formation === '3-2-3') {
+    recs.add("Exploit 4v2 in midfield; use third-man runs from ST dropping in.");
+    roles.get('CM-6').add("Be the spare, face forward.");
+    roles.get('CM-8').add("Arrive beyond their CMs to overload.");
+    roles.get('ST').add("Drop between lines to link and spin.");
+  }
+  if (obs.formation === '3-3-2') {
+    recs.add("Attack wide: push wing-backs high, switch play to isolate 1v1.");
+    roles.get('WB-L').add("Start higher; time runs to get in behind.");
+    roles.get('WB-R').add("Be ready to receive switches.");
+  }
+
+  if (obs.lineHeight === 'high') {
+    recs.add("Hit early balls in behind their back three; time wide runs.");
+    roles.get('ST').add("Run channels; check runs to stay onside.");
+  } else if (obs.lineHeight === 'deep') {
+    recs.add("Encourage shots from edge and cut-backs; avoid hopeful long balls.");
+    roles.get('CM-8').add("Find half-spaces for cut-backs.");
+  }
+
+  if (obs.pressKeeper) {
+    recs.add("Prepare press-resistance: split CBs; CM-6 drops to create 3+1 build.");
+    comms.push("They press GK — one-touch angles, avoid square passes.");
+    roles.get('GK').add("Play quickly; find CM-6.");
+    roles.get('CB-C').add("Offer bounce pass; open to switch.");
+  } else {
+    recs.add("If no press, CB-C carry into space and commit a midfielder.");
+    roles.get('CB-C').add("Carry into space to draw a midfielder.");
+  }
+
+  if (obs.weakDef) {
+    recs.add(`Target their ${obs.weakDef} with diagonals/overloads.`);
+    roles.get('ST').add(`Pull onto their ${obs.weakDef} for duels.`);
+  }
+
+  if (obs.buildSide !== 'middle') {
+    recs.add(`Shift pressing trap to their ${obs.buildSide} side; show inside then spring.`);
+    roles.get(obs.buildSide === 'left' ? 'CB-L' : 'CB-R').add("Step in when trap is sprung.");
+  }
+
+  if (obs.overloadWide) {
+    recs.add("Ball-side WB sits 2m deeper; nearest CM helps to make 2v2.");
+    roles.get('CM-8').add("Help wide; recover central.");
+  }
+
+  if (obs.playmaker) {
+    recs.add(`Screen their ${obs.playmaker} with CM-6; deny half-turns.`);
+    roles.get('CM-6').add("Locate playmaker early; block lane.");
+  }
+
+  if (obs.gkHeight === 'short') {
+    recs.add("Test high balls, back-post crosses, and rising shots to top corners.");
+  }
+  if (obs.gkDist !== 'long') {
+    recs.add("Press high on goal-kicks; lock on and force to one side.");
+    roles.get('ST').add("Curved press; block GK's strong foot.");
+  }
+  if (obs.gkConf === 'panics') {
+    recs.add("Send ST to close GK aggressively with curved run.");
+  }
+
+  if (obs.spaceBehind) {
+    recs.add("Spin wingers/WBs in behind; early through-balls into channels.");
+    roles.get('CM-8').add("Look early for channel runs.");
+  }
+  if (obs.spaceBetween) {
+    recs.add("Have ST drop; combine in half-spaces for third-man runs.");
+    roles.get('ST').add("Receive on the half-turn.");
+  }
+  if (obs.spaceSwitch) {
+    recs.add("Switch quickly with diagonals; attack far-side before they shift.");
+    roles.get('CB-C').add("Be the switch hub.");
+  }
+  if (obs.setPieces) {
+    recs.add("Load the six-yard line on corners; attack second balls aggressively.");
+    roles.get('CB-L').add("Attack near-post zone.");
+    roles.get('CB-R').add("Attack far-post zone.");
+  }
+
+  // Render
+  const recList = document.getElementById('recs');
+  recList.innerHTML = '';
+  [...recs].forEach(t => {
+    const li = document.createElement('li'); li.textContent = t; recList.appendChild(li);
+  });
+
+  const commsWrap = document.getElementById('comms');
+  commsWrap.innerHTML = '';
+  if (comms.length){
+    const title = document.createElement('div'); title.style.marginTop='8px'; title.innerHTML='<strong>Touchline comms:</strong>';
+    commsWrap.appendChild(title);
+    const div = document.createElement('div');
+    comms.forEach(m => { const s=document.createElement('span'); s.className='pill'; s.textContent=m; div.appendChild(s); });
+    commsWrap.appendChild(div);
+  }
+
+  const rolesWrap = document.getElementById('roles');
+  rolesWrap.innerHTML='';
+  [...roles.entries()].forEach(([role, set]) => {
+    const card = document.createElement('div'); card.className='card';
+    const h = document.createElement('div'); h.style.fontWeight='700'; h.style.marginBottom='6px'; h.textContent = role;
+    card.appendChild(h);
+    if (set.size===0){ const p=document.createElement('div'); p.className='small'; p.textContent='No special cues yet.'; card.appendChild(p); }
+    else{
+      const ul=document.createElement('ul'); ul.className='list'; set.forEach(x=>{ const li=document.createElement('li'); li.textContent=x; ul.appendChild(li); }); card.appendChild(ul);
+    }
+    rolesWrap.appendChild(card);
+  });
+
+  const headline = "We press high, play brave, and punish wide.";
+  const topFour = [...recs].slice(0,4);
+  const micro = [...roles.entries()].map(([r, set]) => set.size? `${r}: ${set.values().next().value}`: null).filter(Boolean).slice(0,6);
+  const talk = `TEAM TALK\n${headline}\n- ${topFour.join('\n- ')}\n\nPOSITION CUES\n- ${micro.join('\n- ')}`;
+  document.getElementById('teamTalk').textContent = talk;
+
+  window._latestTalk = talk; // for copy
+}
+
+document.getElementById('btnGenerate').addEventListener('click', genPlan);
+document.getElementById('btnReset').addEventListener('click', ()=>location.reload());
+document.getElementById('btnCopy').addEventListener('click', async()=>{
+  try{ await navigator.clipboard.writeText(window._latestTalk || ''); alert('Copied ✅'); }
+  catch{ alert('Copy failed — long-press the text to copy.'); }
+});
+</script>
+</body>
+</html>
+
+
+
